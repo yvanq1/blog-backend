@@ -29,7 +29,11 @@ const app = express();
 // 中间件配置
 app.use(cors({
   origin: function(origin, callback) {
-    const allowedOrigins = ['http://localhost:3000', 'http://localhost:3002'];
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3002',
+      'https://blog-frontend-9766.onrender.com'
+    ];
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -68,10 +72,10 @@ app.use(session({
     ttl: 24 * 60 * 60
   }),
   cookie: {
-    secure: false, // 开发环境设置为 false
+    secure: true, // 生产环境必须为 true
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
-    sameSite: 'lax'
+    sameSite: 'none'  // 改为 none 以支持跨域
   }
 }));
 
