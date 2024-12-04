@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { verifySession } = require('../middlewares/auth');
+const { verifyToken } = require('../middlewares/auth');
 const favoriteController = require('../controllers/favorite.controller');
 
 // 所有收藏相关的路由都需要验证登录状态
-router.use(verifySession);
+router.use(verifyToken);
 
 // 添加收藏
 router.post('/', favoriteController.addFavorite);

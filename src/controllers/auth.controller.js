@@ -1,5 +1,8 @@
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // 用户注册
 const register = async (req, res) => {
@@ -24,14 +27,19 @@ const register = async (req, res) => {
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`
     });
 
-    // 创建会话
-    req.session.userId = user._id;
+    // 生成JWT token
+    const token = jwt.sign(
+      { userId: user._id },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    // 返回用户信息
+    // 返回用户信息和token
     res.status(201).json({
       success: true,
       message: '注册成功',
       data: {
+        token,
         user: {
           id: user._id,
           email: user.email,
@@ -64,21 +72,27 @@ const login = async (req, res) => {
     }
 
     // 验证密码
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
       return res.status(401).json({
         success: false,
         message: '邮箱或密码错误'
       });
     }
 
-    // 创建会话
-    req.session.userId = user._id;
+    // 生成JWT token
+    const token = jwt.sign(
+      { userId: user._id },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    // 返回用户信息
+    // 返回用户信息和token
     res.json({
       success: true,
+      message: '登录成功',
       data: {
+        token,
         user: {
           id: user._id,
           email: user.email,
@@ -88,7 +102,7 @@ const login = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.warn('Login error:', error);
     res.status(500).json({
       success: false,
       message: '登录失败，请重试'
@@ -96,34 +110,20 @@ const login = async (req, res) => {
   }
 };
 
-// 退出登录
-const logout = (req, res) => {
-  req.session.destroy(err => {
-    if (err) {
-      return res.status(500).json({
-        success: false,
-        message: '退出登录失败'
-      });
-    }
-    res.clearCookie('connect.sid');
-    res.json({
-      success: true,
-      message: '退出登录成功'
-    });
-  });
-};
-
-// 检查会话状态
-const checkSession = async (req, res) => {
+// 检查认证状态
+const checkAuth = async (req, res) => {
   try {
-    if (!req.session.userId) {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
       return res.status(401).json({
         success: false,
         message: '未登录'
       });
     }
 
-    const user = await User.findById(req.session.userId);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -143,10 +143,9 @@ const checkSession = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Session check error:', error);
-    res.status(500).json({
+    res.status(401).json({
       success: false,
-      message: '会话检查失败'
+      message: '认证失败'
     });
   }
 };
@@ -154,14 +153,17 @@ const checkSession = async (req, res) => {
 // 获取当前用户信息
 const getCurrentUser = async (req, res) => {
   try {
-    if (!req.session.userId) {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
       return res.status(401).json({
         success: false,
         message: '未登录'
       });
     }
 
-    const user = await User.findById(req.session.userId);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -181,8 +183,7 @@ const getCurrentUser = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get current user error:', error);
-    res.status(500).json({
+    res.status(401).json({
       success: false,
       message: '获取用户信息失败'
     });
@@ -192,7 +193,6 @@ const getCurrentUser = async (req, res) => {
 module.exports = {
   register,
   login,
-  logout,
-  getCurrentUser,
-  checkSession
+  checkAuth,
+  getCurrentUser
 };

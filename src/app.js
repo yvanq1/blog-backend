@@ -28,7 +28,11 @@ const app = express();
 
 // 中间件配置
 app.use(cors({
-  origin: '*',
+  origin: [
+    'https://render-blog-frontend-orfmyyxoi-yvanq1s-projects.vercel.app',
+    'https://render-blog-frontend.vercel.app',
+    'http://localhost:3000'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

@@ -5,7 +5,7 @@ const Article = require('../models/article.model');
 exports.addFavorite = async (req, res) => {
   try {
     const { articleId } = req.body;
-    const userId = req.session.userId;
+    const userId = req.user._id;
 
     // 检查文章是否存在
     const article = await Article.findById(articleId);
@@ -13,6 +13,15 @@ exports.addFavorite = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: '文章不存在'
+      });
+    }
+
+    // 检查是否已经收藏
+    const existingFavorite = await Favorite.findOne({ userId, articleId });
+    if (existingFavorite) {
+      return res.status(400).json({
+        success: false,
+        message: '已经收藏过了'
       });
     }
 
@@ -29,14 +38,6 @@ exports.addFavorite = async (req, res) => {
       message: '收藏成功'
     });
   } catch (error) {
-    // 如果是重复收藏导致的错误
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: '已经收藏过该文章'
-      });
-    }
-
     console.error('添加收藏失败:', error);
     res.status(500).json({
       success: false,
@@ -49,17 +50,13 @@ exports.addFavorite = async (req, res) => {
 exports.removeFavorite = async (req, res) => {
   try {
     const { articleId } = req.params;
-    const userId = req.session.userId;
+    const userId = req.user._id;
 
-    const result = await Favorite.findOneAndDelete({
-      userId,
-      articleId
-    });
-
+    const result = await Favorite.findOneAndDelete({ userId, articleId });
     if (!result) {
       return res.status(404).json({
         success: false,
-        message: '收藏记录不存在'
+        message: '收藏不存在'
       });
     }
 
@@ -80,12 +77,9 @@ exports.removeFavorite = async (req, res) => {
 exports.getFavoriteStatus = async (req, res) => {
   try {
     const { articleId } = req.params;
-    const userId = req.session.userId;
+    const userId = req.user._id;
 
-    const favorite = await Favorite.findOne({
-      userId,
-      articleId
-    });
+    const favorite = await Favorite.findOne({ userId, articleId });
 
     res.json({
       success: true,
@@ -105,30 +99,25 @@ exports.getFavoriteStatus = async (req, res) => {
 // 获取收藏列表
 exports.getFavorites = async (req, res) => {
   try {
-    const userId = req.session.userId;
+    const userId = req.user._id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     const favorites = await Favorite.find({ userId })
+      .populate('articleId')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .populate({
-        path: 'articleId',
-        select: 'title summary createdAt tags category coverImage'
-      });
+      .limit(limit);
 
     const total = await Favorite.countDocuments({ userId });
 
     res.json({
       success: true,
       data: {
-        favorites: favorites.map(fav => ({
-          id: fav._id,
-          articleId: fav.articleId._id,
-          article: fav.articleId,
-          createdAt: fav.createdAt
+        favorites: favorites.map(f => ({
+          id: f._id,
+          article: f.articleId
         })),
         total
       }

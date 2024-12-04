@@ -9,7 +9,7 @@ router.get('/popular', articleController.getPopularArticles);
 router.get('/categories', articleController.getCategories);
 router.get('/tags', articleController.getTags);
 router.get('/:id', articleController.getArticle);
-router.patch('/:id/views', articleController.incrementViews);  
+router.put('/:id/views', articleController.incrementViews);  
 
 // 后台管理接口 - 需要管理员权限
 router.post('/', checkAdmin, articleController.createArticle);
