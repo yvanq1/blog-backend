@@ -3,18 +3,20 @@ services:
     name: blog-service
     env: node
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node src/app.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
+        value: 8000
       - key: MONGODB_URI
         sync: false
       - key: SESSION_SECRET
         sync: false
-      - key: CORS_ORIGIN
-        value: https://your-frontend-domain.com,https://your-admin-domain.com
+      - key: FRONTEND_URL
+        value: https://blog-frontend-yvan.onrender.com
+      - key: ADMIN_URL
+        value: https://blog-admin-yvan.onrender.com
       - key: ALIYUN_OSS_REGION
         sync: false
       - key: ALIYUN_OSS_BUCKET
@@ -25,5 +27,3 @@ services:
         sync: false
       - key: ALIYUN_OSS_ENDPOINT
         sync: false
-      - key: ALIYUN_OSS_INTERNAL
-        value: "false"
