@@ -28,11 +28,19 @@ const app = express();
 
 // 中间件配置
 app.use(cors({
-  origin: [
-    'https://render-blog-frontend-orfmyyxoi-yvanq1s-projects.vercel.app',
-    'https://render-blog-frontend.vercel.app',
-    'http://localhost:3000'
-  ],
+  origin: function(origin, callback) {
+    // 允许本地开发
+    if (!origin || origin === 'http://localhost:3000') {
+      callback(null, true);
+      return;
+    }
+    // 允许所有 vercel.app 域名
+    if (origin.endsWith('.vercel.app')) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
